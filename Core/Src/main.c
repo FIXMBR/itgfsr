@@ -72,7 +72,8 @@ typedef struct
 } subKeyBoard;
 
 // subKeyBoard keyBoardHIDsub = {0,0,0,0,0,0,0,0};//,0,0,0};
-uint8_t volatile keyBoardHIDsub[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00};//, 0, 0 }; //,0,0,0};
+//uint8_t volatile keyBoardHIDsub[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00};
+uint8_t volatile keyBoardHIDsub[11] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00 };
 // subKeyBoard keyBoardHIDsub = {0,0,0,0,0,0,0,0,0,0,0};
 
 uint16_t  adc_results_1[10];
@@ -95,6 +96,21 @@ uint16_t sensor_offsets[40]={
 		2750,2750,2750,2750,2750,2750,2750,2750,2750,2750
 };
 
+//uint8_t sensors_binding[40]={
+//		0,0,0,0,1,1,1,1,2,2,
+//		2,2,3,3,3,3,4,4,4,4,
+//		5,5,5,5,6,6,6,6,7,7,
+//		7,7,8,8,8,8,3,3,5,5
+//};
+
+
+uint8_t sensors_binding[40]={
+		0,1,2,3,4,5,6,7,8,9,
+		0,1,2,3,4,5,6,7,8,9,
+		0,1,2,3,4,5,6,7,8,9,
+		0,1,2,3,4,5,6,7,8,9
+};
+
 uint16_t raw;
 char msg[10];
 char msg2[255];
@@ -106,20 +122,15 @@ uint8_t rx_buff[255];
 uint8_t rx_buff_flag = 0;
 uint16_t volatile debug_var=0;
 
-//uint8_t sensors_groups[40]={
-//		0,1,2,3,4,5,6,7,8,9,
-//		0,1,2,3,4,5,6,7,8,9,
-//		0,1,2,3,4,5,6,7,8,9,
-//		0,1,2,3,4,5,6,7,8,9
-//};
 
-uint8_t sensors_states[10]={0,0,0,0,0,0,0,0,0,0};
 
-uint8_t sensors_keymap[10]={
+uint8_t key_states[9]={0,0,0,0,0,0,0,0,0};
+
+uint8_t key_map[9]={
 		KEY_Q,KEY_W,KEY_E,
 		KEY_A,KEY_S,KEY_D,
-		KEY_Z,KEY_X,KEY_C,
-		KEY_1};
+		KEY_Z,KEY_X,KEY_C
+};
 
 
 static GPIO_InitTypeDef Output_1_in;
@@ -195,7 +206,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	//	CDC_Transmit(0,"gowno", sizeof("gowno"));
 	//	ground_id=69;
-	debug_var++;
+//	debug_var++;
 	HAL_ADC_Stop_DMA(&hadc1);
 	switch (ground_id) {
 	case 1:
@@ -227,71 +238,72 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if (htim->Instance == TIM2){
-		for (int i = 0; i < 9; ++i) {
-			sensors_states[i]=0;
-			for (int j = 0; j < 4; ++j) {
-				switch (j) {
+		for (int i = 0; i < 40; ++i) {
+			key_states[sensors_binding[i]]=0;
+				switch (i%4) {
 				case 0:
-					//					sprintf(msg, "%hu ", adc_results_1[j]);
-					//					CDC_Transmit(0,msg, sizeof(msg));
-					if(sensor_treshholds[i+j*10]>((sensor_offsets[i+j*10]*1024)/adc_results_1[i])-1024){
-						sensors_states[i]=1;
-						//						sprintf(msg, "%hu ", adc_results_1[j]);
-						//											CDC_Transmit(0,msg, sizeof(msg));
+					if(sensor_treshholds[i]>((sensor_offsets[i]*1024)/adc_results_1[i%4])-1024){
+						key_states[sensors_binding[i]]=1;
 					}
 					break;
 				case 1:
-					//					sprintf(msg, "%hu ", adc_results_2[j]);
-					//					CDC_Transmit(0,msg, sizeof(msg));
-					if(sensor_treshholds[i+j*10]>((sensor_offsets[i+j*10]*1024)/adc_results_2[i])-1024){
-						sensors_states[i]=1;
-						//						sprintf(msg, "%hu ", adc_results_2[j]);
-						//											CDC_Transmit(0,msg, sizeof(msg));
-					}
-
+					if(sensor_treshholds[i]>((sensor_offsets[i]*1024)/adc_results_2[i%4])-1024){
+											key_states[sensors_binding[i]]=1;
+										}
 					break;
 				case 2:
-					//					sprintf(msg, "%hu ", adc_results_3[j]);
-					//					CDC_Transmit(0,msg, sizeof(msg));
-					if(sensor_treshholds[i+j*10]>((sensor_offsets[i+j*10]*1024)/adc_results_3[i])-1024){
-						sensors_states[i]=1;
-						//											sprintf(msg, "%hu ", adc_results_3[j]);
-						//											CDC_Transmit(0,msg, sizeof(msg));
-					}
+					if(sensor_treshholds[i]>((sensor_offsets[i]*1024)/adc_results_3[i%4])-1024){
+											key_states[sensors_binding[i]]=1;
+										}
 					break;
 				case 3:
-					//					sprintf(msg, "%hu ", adc_results_4[j]);
-					//					CDC_Transmit(0,msg, sizeof(msg));
-					if(sensor_treshholds[i+j*10]>((sensor_offsets[i+j*10]*1024)/adc_results_4[i])-1024){
-						sensors_states[i]=1;
-						//						sprintf(msg, "%hu ", adc_results_4[j]);
-						//											CDC_Transmit(0,msg, sizeof(msg));
-					}
+					if(sensor_treshholds[i]>((sensor_offsets[i]*1024)/adc_results_4[i%4])-1024){
+											key_states[sensors_binding[i]]=1;
+										}
 					break;
-				}
+//				}
 
 			}
 			//			CDC_Transmit(0,"kupka", sizeof("kupka"));
 		}
 
-		//		for (int i = 0; i < 9; ++i) {
-		//			keyBoardHIDsub[i]=0x00;
-		//			if(sensors_states[i]==1){
-		//				for (int j = 2; j < 8; ++j) {
-		//					if(keyBoardHIDsub[j]==0x00){
-		//						keyBoardHIDsub[j]=sensors_keymap[i];
-		//					}
-		//				}
-		//			}
-		//		}
+				for (int i = 0; i < 9; ++i) {
+					if(key_states[i]==1){
+								keyBoardHIDsub[i+2]=key_map[i];
+					}else{
+						keyBoardHIDsub[i+2]=0x00;
+					}
+				}
 
-		if(sensors_states[0]==1){
-			//			keyBoardHIDsub[2]=sensors_keymap[0];
-			keyBoardHIDsub[2]=0x05;
-		}else{
-			keyBoardHIDsub[2]=0x00;
-		}
+//		if(debug_var>100){
+//			//			keyBoardHIDsub[2]=sensors_keymap[0];
+//			keyBoardHIDsub[2]=KEY_Q;
+//			keyBoardHIDsub[3]=KEY_W;
+//			keyBoardHIDsub[4]=KEY_E;
+//			keyBoardHIDsub[5]=KEY_A;
+//			keyBoardHIDsub[6]=KEY_S;
+//			keyBoardHIDsub[7]=KEY_D;
+//			keyBoardHIDsub[8]=KEY_Z;
+//			keyBoardHIDsub[9]=KEY_X;
+//			keyBoardHIDsub[10]=KEY_C;
+//			debug_var++;
+//			if(debug_var==200){
+//				debug_var=0;
+//			}
+//		}else{
+//			debug_var++;
+//			keyBoardHIDsub[2]=0x00;
+//			keyBoardHIDsub[3]=0x00;
+//			keyBoardHIDsub[4]=0x00;
+//			keyBoardHIDsub[5]=0x00;
+//			keyBoardHIDsub[6]=0x00;
+//			keyBoardHIDsub[7]=0x00;
+//			keyBoardHIDsub[8]=0x00;
+//			keyBoardHIDsub[9]=0x00;
+//			keyBoardHIDsub[10]=0x00;
+//		}
 
+//				sprintf(msg, "%hu ", debug_var);q
 
 		USBD_HID_Keybaord_SendReport(&hUsbDevice, &keyBoardHIDsub, sizeof(keyBoardHIDsub));
 
@@ -555,7 +567,7 @@ int main(void)
 
 
 		//		for (int i = 0; i < 10; ++i) {
-		//			sensors_states[i]=0;
+		//			key_states[i]=0;
 		//			for (int j = 0; j < 4; ++j) {
 		//				switch (j) {
 		//				case 0:
@@ -590,7 +602,7 @@ int main(void)
 		//		HAL_Delay(1);
 		//		CDC_Transmit(0,"\n\r===\n\r", sizeof("\n\r===\n\r"));
 		//		HAL_Delay(1);
-		//		sprintf(msg, "%d ====", sensors_states[1]);
+		//		sprintf(msg, "%d ====", key_states[1]);
 		//		CDC_Transmit(0,msg, sizeof(msg));
 		//		HAL_Delay(1);
 		//		CDC_Transmit(0,"\n\r===\n\r", sizeof("\n\r===\n\r"));
