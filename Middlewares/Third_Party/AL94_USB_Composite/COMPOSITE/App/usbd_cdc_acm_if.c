@@ -421,12 +421,26 @@ static int8_t CDC_Control(uint8_t cdc_ch, uint8_t cmd, uint8_t *pbuf, uint16_t l
 static int8_t CDC_Receive(uint8_t cdc_ch, uint8_t *Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-  //HAL_UART_Transmit_DMA(CDC_CH_To_UART_Handle(cdc_ch), Buf, *Len);
-  CDC_Transmit(cdc_ch, Buf, *Len); // echo back on same channel
+	//HAL_UART_Transmit_DMA(CDC_CH_To_UART_Handle(cdc_ch), Buf, *Len);
+	//  CDC_Transmit(cdc_ch, Buf, *Len); // echo back on same channel
 
-  USBD_CDC_SetRxBuffer(cdc_ch, &hUsbDevice, &Buf[0]);
-  USBD_CDC_ReceivePacket(cdc_ch, &hUsbDevice);
-  return (USBD_OK);
+	USBD_CDC_SetRxBuffer(cdc_ch, &hUsbDevice, &Buf[0]);
+	USBD_CDC_ReceivePacket(cdc_ch, &hUsbDevice);
+
+
+	extern uint8_t rx_buff[255];
+	extern uint8_t rx_buff_flag;
+
+	// Wyczyszczenie tablicy odebranych danych
+	uint8_t iter;
+	for(iter = 0; iter<255; ++iter){
+		rx_buff[iter] = 0;
+	}
+
+	strlcpy(rx_buff, Buf, (*Len) + 1); // Przekopiowanie danych do naszej tablicy
+	rx_buff_flag = 1;
+
+	return (USBD_OK);
   /* USER CODE END 6 */
 }
 

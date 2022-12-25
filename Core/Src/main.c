@@ -82,6 +82,13 @@ uint16_t  adc_results_4[10];
 uint8_t volatile ground_id=1;
 
 uint16_t sensor_treshholds[40]={
+		600,275,275,275,275,275,275,275,275,275,
+		275,275,275,275,275,275,275,275,275,275,
+		275,275,275,275,275,275,275,275,275,275,
+		275,275,275,275,275,275,275,275,275,275
+};
+
+uint16_t sensor_offsets[40]={
 		3000,2750,2750,2750,2750,2750,2750,2750,2750,2750,
 		2750,2750,2750,2750,2750,2750,2750,2750,2750,2750,
 		2750,2750,2750,2750,2750,2750,2750,2750,2750,2750,
@@ -90,6 +97,13 @@ uint16_t sensor_treshholds[40]={
 
 uint16_t raw;
 char msg[10];
+char msg2[255];
+uint16_t s;
+char *token;
+uint16_t num1, num2;
+
+uint8_t rx_buff[255];
+uint8_t rx_buff_flag = 0;
 uint16_t volatile debug_var=0;
 
 //uint8_t sensors_groups[40]={
@@ -220,7 +234,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				case 0:
 					//					sprintf(msg, "%hu ", adc_results_1[j]);
 					//					CDC_Transmit(0,msg, sizeof(msg));
-					if(sensor_treshholds[i+j*10]>adc_results_1[i]){
+					if(sensor_treshholds[i+j*10]>((sensor_offsets[i+j*10]*1024)/adc_results_1[i])-1024){
 						sensors_states[i]=1;
 						//						sprintf(msg, "%hu ", adc_results_1[j]);
 						//											CDC_Transmit(0,msg, sizeof(msg));
@@ -229,7 +243,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				case 1:
 					//					sprintf(msg, "%hu ", adc_results_2[j]);
 					//					CDC_Transmit(0,msg, sizeof(msg));
-					if(sensor_treshholds[i+j*10]>adc_results_2[i]){
+					if(sensor_treshholds[i+j*10]>((sensor_offsets[i+j*10]*1024)/adc_results_2[i])-1024){
 						sensors_states[i]=1;
 						//						sprintf(msg, "%hu ", adc_results_2[j]);
 						//											CDC_Transmit(0,msg, sizeof(msg));
@@ -239,7 +253,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				case 2:
 					//					sprintf(msg, "%hu ", adc_results_3[j]);
 					//					CDC_Transmit(0,msg, sizeof(msg));
-					if(sensor_treshholds[i+j*10]>adc_results_3[i]){
+					if(sensor_treshholds[i+j*10]>((sensor_offsets[i+j*10]*1024)/adc_results_3[i])-1024){
 						sensors_states[i]=1;
 						//											sprintf(msg, "%hu ", adc_results_3[j]);
 						//											CDC_Transmit(0,msg, sizeof(msg));
@@ -248,7 +262,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				case 3:
 					//					sprintf(msg, "%hu ", adc_results_4[j]);
 					//					CDC_Transmit(0,msg, sizeof(msg));
-					if(sensor_treshholds[i+j*10]>adc_results_4[i]){
+					if(sensor_treshholds[i+j*10]>((sensor_offsets[i+j*10]*1024)/adc_results_4[i])-1024){
 						sensors_states[i]=1;
 						//						sprintf(msg, "%hu ", adc_results_4[j]);
 						//											CDC_Transmit(0,msg, sizeof(msg));
@@ -272,7 +286,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		//		}
 
 		if(sensors_states[0]==1){
-//			keyBoardHIDsub[2]=sensors_keymap[0];
+			//			keyBoardHIDsub[2]=sensors_keymap[0];
 			keyBoardHIDsub[2]=0x05;
 		}else{
 			keyBoardHIDsub[2]=0x00;
@@ -280,6 +294,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
 
 		USBD_HID_Keybaord_SendReport(&hUsbDevice, &keyBoardHIDsub, sizeof(keyBoardHIDsub));
+
+		//		CDC_Receive(0,&rx_buff,&sizeof(rx_buff));
+		//		CDC_Transmit(0, &rx_buff,sizeof(rx_buff));
+
 	}
 }
 /* USER CODE END 0 */
@@ -422,51 +440,161 @@ int main(void)
 		//		}
 		//		// Pretend we have to do something else for a while
 
+		if(rx_buff_flag == 1){
+			rx_buff_flag = 0;
 
 
-
-
-		for (int i = 0; i < 10; ++i) {
-			sensors_states[i]=0;
-			for (int j = 0; j < 4; ++j) {
-				switch (j) {
-				case 0:
-					sprintf(msg, "%hu ", adc_results_1[i]);
-					CDC_Transmit(0,msg, sizeof(msg));
-					break;
-				case 1:
-					sprintf(msg, "%hu ", adc_results_2[i]);
-					CDC_Transmit(0,msg, sizeof(msg));
-					break;
-				case 2:
-					sprintf(msg, "%hu ", adc_results_3[i]);
-					CDC_Transmit(0,msg, sizeof(msg));
-					break;
-				case 3:
-					sprintf(msg, "%hu ", adc_results_4[i]);
-					CDC_Transmit(0,msg, sizeof(msg));
-					break;
+			switch(rx_buff[0]) {
+			case 'o':
+			case 'O':
+				for (int i = 0; i < 10; ++i) {
+					for (int j = 0; j < 4; ++j) {
+						switch (j) {
+						case 0:
+							sensor_offsets[i+j*10]=adc_results_1[i];
+							break;
+						case 1:
+							sensor_offsets[i+j*10]=adc_results_2[i];
+							break;
+						case 2:
+							sensor_offsets[i+j*10]=adc_results_3[i];
+							break;
+						case 3:
+							sensor_offsets[i+j*10]=adc_results_4[i];
+							break;
+						}
+					}
 				}
-				HAL_Delay(1);
+				break;
+			case 'v':
+			case 'V':
+				s=0;
+				s = sprintf(msg2, "v");
+
+
+				for (int i = 0; i < 10; ++i) {
+					for (int j = 0; j < 4; ++j) {
+						switch (j) {
+						case 0:
+							s += sprintf(msg2+s, " %d", ((sensor_offsets[i+j*10]*1024)/adc_results_1[i])-1024);
+							break;
+						case 1:
+							s += sprintf(msg2+s, " %d", ((sensor_offsets[i+j*10]*1024)/adc_results_2[i])-1024);
+							break;
+						case 2:
+							s += sprintf(msg2+s, " %d", ((sensor_offsets[i+j*10]*1024)/adc_results_3[i])-1024);
+							break;
+						case 3:
+							s += sprintf(msg2+s, " %d", ((sensor_offsets[i+j*10]*1024)/adc_results_4[i])-1024);
+							break;
+						}
+					}
+				}
+
+				s += sprintf(msg2+s, "\n");
+
+				CDC_Transmit(0,msg2, s);
+				break;
+			case 't':
+			case 'T':
+				s=0;
+				s = sprintf(msg2, "t");
+
+
+				for (int i = 0; i < 10; ++i) {
+					for (int j = 0; j < 4; ++j) {
+						s += sprintf(msg2+s, " %d", sensor_treshholds[i+j*10]);
+					}
+				}
+				s += sprintf(msg2+s, "\n");
+
+				CDC_Transmit(0,msg2, s);
+				break;
+
+			case '0' ... '9': // Case ranges are non-standard but work in gcc
+			//			UpdateAndPrintThreshold(bytes_read);
+			//				space_position = 0;
+
+			sscanf(rx_buff,"%hu %hu",&num1,&num2);
+//			token = strtok(msg2, " ");
+
+//			CDC_Transmit(0,token, sizeof(token));
+//			num1 = atoi(token);
+
+//			token = strtok(NULL, " ");
+//			num2 = atoi(token);
+
+					sprintf(msg, "%d", num1);
+					CDC_Transmit(0,msg, sizeof(msg));
+
+			if (num1 < 40&&num2 > 0 && num2 <1023) {
+				sensor_treshholds[num1]=num2;
+				s=0;
+				s = sprintf(msg2, "t");
+
+
+				for (int i = 0; i < 10; ++i) {
+					for (int j = 0; j < 4; ++j) {
+						s += sprintf(msg2+s, " %d", sensor_treshholds[i+j*10]);
+					}
+				}
+				s += sprintf(msg2+s, "\n");
+
+				CDC_Transmit(0,msg2, s);
 			}
 
-			CDC_Transmit(0,"|\n\r", sizeof("|\n\r"));
-			HAL_Delay(1);
+			break;
+			default:
+				break;
+			}
+
+			//			MessageLength = sprintf(DataToSend, "Odebrano: %s\n\r", ReceivedData);
+			//			CDC_Transmit_FS(DataToSend, MessageLength);
 		}
 
-		CDC_Transmit(0,"===\n\r", sizeof("===\n\r"));
-		HAL_Delay(1);
-		sprintf(msg, "%hu ", debug_var);
-		CDC_Transmit(0,msg, sizeof(msg));
-		debug_var=0;
-		HAL_Delay(1);
-		CDC_Transmit(0,"\n\r===\n\r", sizeof("\n\r===\n\r"));
-		HAL_Delay(1);
-		sprintf(msg, "%d ====", sensors_states[1]);
-		CDC_Transmit(0,msg, sizeof(msg));
-		HAL_Delay(1);
-		CDC_Transmit(0,"\n\r===\n\r", sizeof("\n\r===\n\r"));
-		HAL_Delay(500);
+
+
+		//		for (int i = 0; i < 10; ++i) {
+		//			sensors_states[i]=0;
+		//			for (int j = 0; j < 4; ++j) {
+		//				switch (j) {
+		//				case 0:
+		//					sprintf(msg, "%hu ", adc_results_1[i]);
+		//					CDC_Transmit(0,msg, sizeof(msg));
+		//					break;
+		//				case 1:
+		//					sprintf(msg, "%hu ", adc_results_2[i]);
+		//					CDC_Transmit(0,msg, sizeof(msg));
+		//					break;
+		//				case 2:
+		//					sprintf(msg, "%hu ", adc_results_3[i]);
+		//					CDC_Transmit(0,msg, sizeof(msg));
+		//					break;
+		//				case 3:
+		//					sprintf(msg, "%hu ", adc_results_4[i]);
+		//					CDC_Transmit(0,msg, sizeof(msg));
+		//					break;
+		//				}
+		//				HAL_Delay(1);
+		//			}
+		//
+		//			CDC_Transmit(0,"|\n\r", sizeof("|\n\r"));
+		//			HAL_Delay(1);
+		//		}
+		//
+		//		CDC_Transmit(0,"===\n\r", sizeof("===\n\r"));
+		//		HAL_Delay(1);
+		//		sprintf(msg, "%hu ", debug_var);
+		//		CDC_Transmit(0,msg, sizeof(msg));
+		//		debug_var=0;
+		//		HAL_Delay(1);
+		//		CDC_Transmit(0,"\n\r===\n\r", sizeof("\n\r===\n\r"));
+		//		HAL_Delay(1);
+		//		sprintf(msg, "%d ====", sensors_states[1]);
+		//		CDC_Transmit(0,msg, sizeof(msg));
+		//		HAL_Delay(1);
+		//		CDC_Transmit(0,"\n\r===\n\r", sizeof("\n\r===\n\r"));
+		//		HAL_Delay(500);
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
