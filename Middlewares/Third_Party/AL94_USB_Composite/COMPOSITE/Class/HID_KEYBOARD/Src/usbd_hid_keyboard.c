@@ -396,7 +396,7 @@ __ALIGN_BEGIN static uint8_t HID_KEYBOARD_ReportDesc[HID_KEYBOARD_REPORT_DESC_SI
 
 	    /* 6 Keyboard keys */
 	    0x05, 0x07,                      /*   USAGE_PAGE (Keyboard) */
-	    0x95, 0x06,                      /*   REPORT_COUNT (6) */
+	    0x95, 0x09,                      /*   REPORT_COUNT (6) */
 	    0x75, 0x08,                      /*   REPORT_SIZE (8) */
 	    0x15, 0x00,                      /*   LOGICAL_MINIMUM (0) */
 	    0x26, 0xE7, 0x00,                /*   LOGICAL_MAXIMUM (231) */

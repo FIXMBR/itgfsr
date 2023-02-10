@@ -87,10 +87,10 @@ uint16_t sensor_offsets[40] = {
 // };
 
 uint8_t sensors_binding[40] = {
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 8};
 
 uint16_t raw;
 char msg[10];
@@ -210,27 +210,35 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 				switch (j)
 				{
 				case 0:
-					if (sensor_treshholds[i] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_1[i]) - 1024))
+					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_1[i]) - 1024))
 					{
 						key_states[sensors_binding[i + j * 10]] = 1;
+//						s = sprintf(msg2, "dupa\n");
+//						CDC_Transmit(0, msg2, s);
 					}
 					break;
 				case 1:
-					if (sensor_treshholds[i] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_2[i]) - 1024))
+					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_2[i]) - 1024))
 					{
 						key_states[sensors_binding[i + j * 10]] = 1;
+//						s = sprintf(msg2, "dupa\n");
+//						CDC_Transmit(0, msg2, s);
 					}
 					break;
 				case 2:
-					if (sensor_treshholds[i] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_3[i]) - 1024))
+					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_3[i]) - 1024))
 					{
 						key_states[sensors_binding[i + j * 10]] = 1;
+//						s = sprintf(msg2, "dupa\n");
+//						CDC_Transmit(0, msg2, s);
 					}
 					break;
 				case 3:
-					if (sensor_treshholds[i] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_4[i]) - 1024))
+					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_4[i]) - 1024))
 					{
 						key_states[sensors_binding[i + j * 10]] = 1;
+//						s = sprintf(msg2, "dupa\n");
+//						CDC_Transmit(0, msg2, s);
 					}
 					break;
 				}
@@ -287,7 +295,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 //		for (int i = 0; i < 9; ++i)
 //		{
 //
-//				s += sprintf(msg2 + s, " %d", keyBoardHIDsub[i+2]);
+//				s += sprintf(msg2 + s, " %d", key_states[i]);
 //
 //		}
 //		s += sprintf(msg2 + s, "\n");
