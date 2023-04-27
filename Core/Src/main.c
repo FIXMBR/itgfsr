@@ -34,7 +34,7 @@
 #include "usbd_cdc_acm_if.h"
 #include "usb_hid_keys.h"
 // #include "usbd_composite.h"
-// #include <eeprom.h>
+#include <eeprom.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +56,9 @@
 /* USER CODE BEGIN PV */
 #define DEBUG_SENSORS 0
 
+uint16_t VirtAddVarTab[NB_OF_VAR];
+uint16_t VarIndex, VarDataTmp = 0;
+
 extern USBD_HandleTypeDef hUsbDevice;
 
 uint8_t volatile keyBoardHIDsub[11] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -65,19 +68,29 @@ uint16_t adc_results_2[10];
 uint16_t adc_results_3[10];
 uint16_t adc_results_4[10];
 
+uint16_t adc_results_1_buf1[10];
+uint16_t adc_results_2_buf1[10];
+uint16_t adc_results_3_buf1[10];
+uint16_t adc_results_4_buf1[10];
+
+uint16_t adc_results_1_buf2[10];
+uint16_t adc_results_2_buf2[10];
+uint16_t adc_results_3_buf2[10];
+uint16_t adc_results_4_buf2[10];
+
 uint8_t volatile ground_id = 1;
 
 uint16_t sensor_treshholds[40] = {
-		600, 275, 275, 275, 275, 275, 275, 275, 275, 275,
-		275, 275, 275, 275, 275, 275, 275, 275, 275, 275,
-		275, 275, 275, 275, 275, 275, 275, 275, 275, 275,
-		275, 275, 275, 275, 275, 275, 275, 275, 275, 275};
+	750, 750, 750, 750, 750, 750, 750, 750, 750, 750,
+	750, 750, 750, 750, 750, 750, 750, 750, 750, 750,
+	750, 750, 750, 750, 750, 750, 750, 750, 750, 750,
+	750, 750, 750, 750, 750, 750, 750, 750, 750, 750};
 
 uint16_t sensor_offsets[40] = {
-		4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
-		4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
-		4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
-		4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000};
+	4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
+	4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
+	4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
+	4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000};
 
 // uint8_t sensors_binding[40]={
 //		0,0,0,0,1,1,1,1,2,2,
@@ -87,28 +100,28 @@ uint16_t sensor_offsets[40] = {
 // };
 
 uint8_t sensors_binding[40] = {
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 8};
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 8};
 
 uint16_t raw;
 char msg[10];
 char msg2[255];
 uint16_t s;
 char *token;
-uint16_t num1, num2;
+uint16_t num1, num2,sensor_id;
 
 uint8_t rx_buff[255];
-uint8_t rx_buff_flag = 0;
+uint8_t volatile rx_buff_flag = 0;
 uint16_t volatile debug_var = 0;
 
 uint8_t key_states[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 uint8_t key_map[9] = {
-		KEY_Q, KEY_W, KEY_E,
-		KEY_A, KEY_S, KEY_D,
-		KEY_Z, KEY_X, KEY_C};
+	KEY_Q, KEY_W, KEY_E,
+	KEY_A, KEY_S, KEY_D,
+	KEY_Z, KEY_X, KEY_C};
 
 static GPIO_InitTypeDef Output_1_in;
 static GPIO_InitTypeDef Output_1_out;
@@ -141,25 +154,25 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 		HAL_GPIO_Init(Output_1_GPIO_Port, &Output_1_in);
 		HAL_GPIO_Init(Output_2_GPIO_Port, &Output_2_out);
 		ground_id = 2;
-		HAL_ADC_Start_DMA(&hadc1, &adc_results_2, 10);
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&adc_results_2, 10);
 		break;
 	case 2:
 		HAL_GPIO_Init(Output_2_GPIO_Port, &Output_2_in);
 		HAL_GPIO_Init(Output_3_GPIO_Port, &Output_3_out);
 		ground_id = 3;
-		HAL_ADC_Start_DMA(&hadc1, &adc_results_3, 10);
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&adc_results_3, 10);
 		break;
 	case 3:
 		HAL_GPIO_Init(Output_3_GPIO_Port, &Output_3_in);
 		HAL_GPIO_Init(Output_4_GPIO_Port, &Output_4_out);
 		ground_id = 4;
-		HAL_ADC_Start_DMA(&hadc1, &adc_results_4, 10);
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&adc_results_4, 10);
 		break;
 	case 4:
 		HAL_GPIO_Init(Output_4_GPIO_Port, &Output_4_in);
 		HAL_GPIO_Init(Output_1_GPIO_Port, &Output_1_out);
 		ground_id = 1;
-		HAL_ADC_Start_DMA(&hadc1, &adc_results_1, 10);
+		HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&adc_results_1, 10);
 		break;
 	}
 }
@@ -199,7 +212,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	//	}
 	if (htim->Instance == TIM2)
 	{
-		for(int i =0; i<9;i++){
+		for (int i = 0; i < 9; i++)
+		{
 			key_states[i] = 0;
 		}
 
@@ -213,69 +227,69 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_1[i]) - 1024))
 					{
 						key_states[sensors_binding[i + j * 10]] = 1;
-//						s = sprintf(msg2, "dupa\n");
-//						CDC_Transmit(0, msg2, s);
+						//						s = sprintf(msg2, "dupa\n");
+						//						CDC_Transmit(0, msg2, s);
 					}
 					break;
 				case 1:
 					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_2[i]) - 1024))
 					{
 						key_states[sensors_binding[i + j * 10]] = 1;
-//						s = sprintf(msg2, "dupa\n");
-//						CDC_Transmit(0, msg2, s);
+						//						s = sprintf(msg2, "dupa\n");
+						//						CDC_Transmit(0, msg2, s);
 					}
 					break;
 				case 2:
 					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_3[i]) - 1024))
 					{
 						key_states[sensors_binding[i + j * 10]] = 1;
-//						s = sprintf(msg2, "dupa\n");
-//						CDC_Transmit(0, msg2, s);
+						//						s = sprintf(msg2, "dupa\n");
+						//						CDC_Transmit(0, msg2, s);
 					}
 					break;
 				case 3:
 					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / adc_results_4[i]) - 1024))
 					{
 						key_states[sensors_binding[i + j * 10]] = 1;
-//						s = sprintf(msg2, "dupa\n");
-//						CDC_Transmit(0, msg2, s);
+						//						s = sprintf(msg2, "dupa\n");
+						//						CDC_Transmit(0, msg2, s);
 					}
 					break;
 				}
 			}
 		}
 
-//		for (int i = 0; i < 40; ++i)
-//		{
-//			key_states[sensors_binding[i]] = 0;
-//			switch (i % 4)
-//			{
-//			case 0:
-//				if (sensor_treshholds[i] > ((sensor_offsets[i] * 1024) / adc_results_1[i % 4]) - 1024)
-//				{
-//					key_states[sensors_binding[i]] = 1;
-//				}
-//				break;
-//			case 1:
-//				if (sensor_treshholds[i] > ((sensor_offsets[i] * 1024) / adc_results_2[i % 4]) - 1024)
-//				{
-//					key_states[sensors_binding[i]] = 1;
-//				}
-//				break;
-//			case 2:
-//				if (sensor_treshholds[i] > ((sensor_offsets[i] * 1024) / adc_results_3[i % 4]) - 1024)
-//				{
-//					key_states[sensors_binding[i]] = 1;
-//				}
-//				break;
-//			case 3:
-//				if (sensor_treshholds[i] > ((sensor_offsets[i] * 1024) / adc_results_4[i % 4]) - 1024)
-//				{
-//					key_states[sensors_binding[i]] = 1;
-//				}
-//				break;
-//			}
-//		}
+		//		for (int i = 0; i < 40; ++i)
+		//		{
+		//			key_states[sensors_binding[i]] = 0;
+		//			switch (i % 4)
+		//			{
+		//			case 0:
+		//				if (sensor_treshholds[i] > ((sensor_offsets[i] * 1024) / adc_results_1[i % 4]) - 1024)
+		//				{
+		//					key_states[sensors_binding[i]] = 1;
+		//				}
+		//				break;
+		//			case 1:
+		//				if (sensor_treshholds[i] > ((sensor_offsets[i] * 1024) / adc_results_2[i % 4]) - 1024)
+		//				{
+		//					key_states[sensors_binding[i]] = 1;
+		//				}
+		//				break;
+		//			case 2:
+		//				if (sensor_treshholds[i] > ((sensor_offsets[i] * 1024) / adc_results_3[i % 4]) - 1024)
+		//				{
+		//					key_states[sensors_binding[i]] = 1;
+		//				}
+		//				break;
+		//			case 3:
+		//				if (sensor_treshholds[i] > ((sensor_offsets[i] * 1024) / adc_results_4[i % 4]) - 1024)
+		//				{
+		//					key_states[sensors_binding[i]] = 1;
+		//				}
+		//				break;
+		//			}
+		//		}
 
 		for (int i = 0; i < 9; ++i)
 		{
@@ -289,20 +303,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			}
 		}
 		//		keyBoardHIDsub[3] = key_map[2];
-//		s = 0;
-//		s = sprintf(msg2, "t");
-//
-//		for (int i = 0; i < 9; ++i)
-//		{
-//
-//				s += sprintf(msg2 + s, " %d", key_states[i]);
-//
-//		}
-//		s += sprintf(msg2 + s, "\n");
-//
-//		CDC_Transmit(0, msg2, s);
+		//		s = 0;
+		//		s = sprintf(msg2, "t");
+		//
+		//		for (int i = 0; i < 9; ++i)
+		//		{
+		//
+		//				s += sprintf(msg2 + s, " %d", key_states[i]);
+		//
+		//		}
+		//		s += sprintf(msg2 + s, "\n");
+		//
+		//		CDC_Transmit(0, msg2, s);
 
-		USBD_HID_Keybaord_SendReport(&hUsbDevice, &keyBoardHIDsub, sizeof(keyBoardHIDsub));
+		USBD_HID_Keybaord_SendReport(&hUsbDevice, (uint8_t *)&keyBoardHIDsub, sizeof(keyBoardHIDsub));
 	}
 }
 /* USER CODE END 0 */
@@ -315,7 +329,7 @@ int main(void)
 {
 	/* USER CODE BEGIN 1 */
 
-	int volatile jajco = 1;
+	//	int volatile jajco = 1;
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -341,6 +355,8 @@ int main(void)
 	MX_USB_PCD_Init();
 	MX_TIM2_Init();
 	/* USER CODE BEGIN 2 */
+
+
 	Output_1_in.Pin = Output_1_Pin;
 	Output_1_in.Mode = GPIO_MODE_INPUT;
 	Output_1_in.Pull = GPIO_NOPULL;
@@ -380,15 +396,45 @@ int main(void)
 	HAL_GPIO_Init(GPIOB, &Output_3_out);
 	HAL_GPIO_Init(GPIOB, &Output_4_out);
 	//	HAL_Delay(1000);
-	HAL_ADC_Start_DMA(&hadc1, &adc_results_1, 10);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&adc_results_1, 10);
 	HAL_TIM_Base_Start_IT(&htim2);
 	//	HAL_ADCEx_Calibration_Start(&hadc1);
+
+	HAL_FLASH_Unlock();
+
+	/* EEPROM Init */
+	if (EE_Init() != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	for (VarIndex = 1; VarIndex <= NB_OF_VAR; VarIndex++)
+	{
+		VirtAddVarTab[VarIndex - 1] = VarIndex;
+	}
+
+	for (VarIndex = 0; VarIndex < NB_OF_VAR; VarIndex++)
+	{
+		if ((EE_ReadVariable(VirtAddVarTab[VarIndex], &sensor_treshholds[VarIndex])) == 1)
+		{
+
+			if ((EE_WriteVariable(VirtAddVarTab[VarIndex], sensor_treshholds[VarIndex])) != HAL_OK)
+			{
+				Error_Handler();
+			}
+		}
+	}
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
+
+//		s = 0;
+//		s += sprintf(msg2 + s, " %d", rx_buff_flag);
+//		CDC_Transmit(0, (uint8_t *)msg2, s);
+
 		if (rx_buff_flag == 1)
 		{
 			rx_buff_flag = 0;
@@ -449,7 +495,7 @@ int main(void)
 
 				s += sprintf(msg2 + s, "\n");
 
-				CDC_Transmit(0, msg2, s);
+				CDC_Transmit(0, (uint8_t *)msg2, s);
 				break;
 			case 't':
 			case 'T':
@@ -465,39 +511,49 @@ int main(void)
 				}
 				s += sprintf(msg2 + s, "\n");
 
-				CDC_Transmit(0, msg2, s);
+				CDC_Transmit(0, (uint8_t *)msg2, s);
 				break;
 
 			case '0' ... '9': // Case ranges are non-standard but work in gcc
 
-			sscanf(rx_buff, "%hu %hu", &num1, &num2);
-			sprintf(msg, "%d", num1);
-			CDC_Transmit(0, msg, sizeof(msg));
+				sscanf((char *)rx_buff, "%hu %hu", &num1, &num2);
+				sprintf(msg, "%d", num1);
+				CDC_Transmit(0, (uint8_t *)msg, sizeof(msg));
 
-			if (num1 < 40 && num2 > 0 && num2 < 1023)
-			{
-				//				sensor_treshholds[(num1*10)%40 + num1/4] = num2;
-				sensor_treshholds[num1%4*10 + num1/4] = num2;
-				s = 0;
-				s = sprintf(msg2, "t");
-
-				for (int i = 0; i < 10; ++i)
+				if (num1 < 40 && num2 > 0 && num2 < 1023)
 				{
-					for (int j = 0; j < 4; ++j)
+					//				sensor_treshholds[(num1*10)%40 + num1/4] = num2;
+					sensor_id = num1 % 4 * 10 + num1 / 4;
+					sensor_treshholds[sensor_id] = num2;
+					s = 0;
+					s = sprintf(msg2, "t");
+//					s += sprintf(msg2 + s, " %d", sensor_id);
+
+					for (int i = 0; i < 10; ++i)
 					{
-						s += sprintf(msg2 + s, " %d", sensor_treshholds[i + j * 10]);
+						for (int j = 0; j < 4; ++j)
+						{
+							s += sprintf(msg2 + s, " %d", sensor_treshholds[i + j * 10]);
+						}
 					}
+					s += sprintf(msg2 + s, "\n");
+
+
+					if ((EE_WriteVariable(VirtAddVarTab[sensor_id], sensor_treshholds[sensor_id])) != HAL_OK)
+					{
+						Error_Handler();
+					}
+
+					CDC_Transmit(0, (uint8_t *)msg2, s);
 				}
-				s += sprintf(msg2 + s, "\n");
 
-				CDC_Transmit(0, msg2, s);
-			}
-
-			break;
+				break;
 			default:
 				break;
 			}
 		}
+//		HAL_Delay(1);
+
 
 		/* USER CODE END WHILE */
 
