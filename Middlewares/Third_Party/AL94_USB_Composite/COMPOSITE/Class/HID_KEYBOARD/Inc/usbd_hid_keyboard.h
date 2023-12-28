@@ -49,7 +49,8 @@ extern "C" {
 #define HID_KEYBOARD_CONFIG_DESC_SIZE                       34U
 #define HID_KEYBOARD_DESC_SIZE                              9U
 
-#define HID_KEYBOARD_REPORT_DESC_SIZE                       187U
+//#define HID_KEYBOARD_REPORT_DESC_SIZE                       187U
+#define HID_KEYBOARD_REPORT_DESC_SIZE                       69U
 
 #define HID_KEYBOARD_DESCRIPTOR_TYPE                        0x21U
 #define HID_KEYBOARD_REPORT_DESC                            0x22U
