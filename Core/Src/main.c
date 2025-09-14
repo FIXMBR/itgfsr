@@ -63,39 +63,39 @@ extern USBD_HandleTypeDef hUsbDevice;
 
 uint8_t volatile keyBoardHIDsub[11] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-uint16_t adc_results_1[10];
-uint16_t adc_results_2[10];
-uint16_t adc_results_3[10];
-uint16_t adc_results_4[10];
+uint16_t adc_results_1[4];
+uint16_t adc_results_2[4];
+uint16_t adc_results_3[4];
+uint16_t adc_results_4[4];
 
-uint16_t adc_results_1_buf1[10];
-uint16_t adc_results_2_buf1[10];
-uint16_t adc_results_3_buf1[10];
-uint16_t adc_results_4_buf1[10];
+uint16_t adc_results_1_buf1[4];
+uint16_t adc_results_2_buf1[4];
+uint16_t adc_results_3_buf1[4];
+uint16_t adc_results_4_buf1[4];
 
-uint16_t adc_results_1_buf2[10];
-uint16_t adc_results_2_buf2[10];
-uint16_t adc_results_3_buf2[10];
-uint16_t adc_results_4_buf2[10];
+uint16_t adc_results_1_buf2[4];
+uint16_t adc_results_2_buf2[4];
+uint16_t adc_results_3_buf2[4];
+uint16_t adc_results_4_buf2[4];
 
-uint16_t adc_results_1_buf3[10];
-uint16_t adc_results_2_buf3[10];
-uint16_t adc_results_3_buf3[10];
-uint16_t adc_results_4_buf3[10];
+uint16_t adc_results_1_buf3[4];
+uint16_t adc_results_2_buf3[4];
+uint16_t adc_results_3_buf3[4];
+uint16_t adc_results_4_buf3[4];
 
 uint8_t volatile ground_id = 1;
 
-uint16_t sensor_treshholds[40] = {
-	750, 750, 750, 750, 750, 750, 750, 750, 750, 750,
-	750, 750, 750, 750, 750, 750, 750, 750, 750, 750,
-	750, 750, 750, 750, 750, 750, 750, 750, 750, 750,
-	750, 750, 750, 750, 750, 750, 750, 750, 750, 750};
+uint16_t sensor_treshholds[16] = {
+	750, 750, 750, 750,
+	750, 750, 750, 750,
+	750, 750, 750, 750,
+	750, 750, 750, 750};
 
-uint16_t sensor_offsets[40] = {
-	4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
-	4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
-	4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
-	4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000};
+uint16_t sensor_offsets[16] = {
+	4000, 4000, 4000, 4000,
+	4000, 4000, 4000, 4000,
+	4000, 4000, 4000, 4000,
+	4000, 4000, 4000, 4000};
 
 // uint8_t sensors_binding[40]={
 //		0,0,0,0,1,1,1,1,2,2,
@@ -117,14 +117,6 @@ uint16_t sensor_offsets[40] = {
 //	5,5, 7, 4, 8, 1, 2, 6, 0, 3,
 //	3,5, 7, 4, 8, 1, 2, 6, 0, 3,
 //	3,5, 7, 4, 8, 1, 2, 6, 0, 3};
-//
-//
-//uint8_t sensors_binding_piu[40] = {
-//	2,5, 7, 4, 8, 1, 2, 6, 0, 3,
-//	8,8, 7, 4, 8, 1, 2, 6, 0, 0,
-//	0,5, 7, 4, 8, 1, 2, 6, 0, 6,
-//	6,2, 7, 4, 8, 1, 2, 6, 0, 3};
-
 
 //P2
 
@@ -134,18 +126,12 @@ uint8_t key_map[9] = {
 	KEY_V, KEY_B, KEY_N};
 
 
-uint8_t sensors_binding[40] = {
-	5,5, 7, 4, 8, 1, 2, 6, 0, 3,
-	5,5, 7, 4, 8, 1, 2, 6, 0, 3,
-	3,5, 7, 4, 8, 1, 2, 6, 0, 3,
-	3,5, 7, 4, 8, 1, 2, 6, 0, 3};
+uint8_t sensors_binding[16] = {
+	5,5, 7, 4,
+	5,5, 7, 4,
+	3,5, 7, 4,
+	3,5, 7, 4};
 
-
-uint8_t sensors_binding_piu[40] = {
-	2,5, 7, 4, 8, 1, 2, 6, 0, 3,
-	8,8, 7, 4, 8, 1, 2, 6, 0, 0,
-	0,5, 7, 4, 8, 1, 2, 6, 0, 6,
-	6,2, 7, 4, 8, 1, 2, 6, 0, 3};
 
 uint16_t raw;
 char msg[10];
@@ -153,7 +139,6 @@ char msg2[255];
 uint16_t s;
 char *token;
 uint16_t num1, num2,sensor_id;
-uint8_t piuMode = 0;
 
 uint8_t rx_buff[255];
 uint8_t volatile rx_buff_flag = 0;
@@ -305,41 +290,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 				case 0:
 					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / get_sensor_avg_1(i)) - 1024))
 					{
-						if(piuMode==0){
-							key_states[sensors_binding[i + j * 10]] = 1;
-						}else{
-							key_states[sensors_binding_piu[i + j * 10]] = 1;
-						}
+						key_states[sensors_binding[i + j * 10]] = 1;
 					}
 					break;
 				case 1:
 					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / get_sensor_avg_2(i)) - 1024))
 					{
-						if(piuMode==0){
-							key_states[sensors_binding[i + j * 10]] = 1;
-						}else{
-							key_states[sensors_binding_piu[i + j * 10]] = 1;
-						}
+						key_states[sensors_binding[i + j * 10]] = 1;
 					}
 					break;
 				case 2:
 					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / get_sensor_avg_3(i)) - 1024))
 					{
-						if(piuMode==0){
-							key_states[sensors_binding[i + j * 10]] = 1;
-						}else{
-							key_states[sensors_binding_piu[i + j * 10]] = 1;
-						}
+						key_states[sensors_binding[i + j * 10]] = 1;
 					}
 					break;
 				case 3:
 					if (sensor_treshholds[i + j * 10] < (((sensor_offsets[i + j * 10] * 1024) / get_sensor_avg_4(i)) - 1024))
 					{
-						if(piuMode==0){
-							key_states[sensors_binding[i + j * 10]] = 1;
-						}else{
-							key_states[sensors_binding_piu[i + j * 10]] = 1;
-						}
+						key_states[sensors_binding[i + j * 10]] = 1;
 					}
 					break;
 				}
@@ -599,14 +568,6 @@ int main(void)
 				s += sprintf(msg2 + s, "\n");
 
 				CDC_Transmit(0, (uint8_t *)msg2, s);
-				break;
-			case 'p':
-			case 'P':
-				piuMode = 1;
-				break;
-			case 'i':
-			case 'I':
-				piuMode = 0;
 				break;
 
 			case '0' ... '9': // Case ranges are non-standard but work in gcc
