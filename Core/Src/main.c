@@ -63,29 +63,35 @@ extern USBD_HandleTypeDef hUsbDevice;
 
 uint8_t volatile keyBoardHIDsub[11] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-uint16_t adc_results_1[4];
-uint16_t adc_results_2[4];
-uint16_t adc_results_3[4];
-uint16_t adc_results_4[4];
+uint16_t adc_results_1[4] = {0, 0, 0, 0};
+uint16_t adc_results_2[4] = {0, 0, 0, 0};
+uint16_t adc_results_3[4] = {0, 0, 0, 0};
+uint16_t adc_results_4[4] = {0, 0, 0, 0};
 
-uint16_t adc_results_1_buf1[4];
-uint16_t adc_results_2_buf1[4];
-uint16_t adc_results_3_buf1[4];
-uint16_t adc_results_4_buf1[4];
+uint16_t adc_results_1_buf1[4] = {0, 0, 0, 0};
+uint16_t adc_results_2_buf1[4] = {0, 0, 0, 0};
+uint16_t adc_results_3_buf1[4] = {0, 0, 0, 0};
+uint16_t adc_results_4_buf1[4] = {0, 0, 0, 0};
 
-uint16_t adc_results_1_buf2[4];
-uint16_t adc_results_2_buf2[4];
-uint16_t adc_results_3_buf2[4];
-uint16_t adc_results_4_buf2[4];
+uint16_t adc_results_1_buf2[4] = {0, 0, 0, 0};
+uint16_t adc_results_2_buf2[4] = {0, 0, 0, 0};
+uint16_t adc_results_3_buf2[4] = {0, 0, 0, 0};
+uint16_t adc_results_4_buf2[4] = {0, 0, 0, 0};
 
-uint16_t adc_results_1_buf3[4];
-uint16_t adc_results_2_buf3[4];
-uint16_t adc_results_3_buf3[4];
-uint16_t adc_results_4_buf3[4];
+uint16_t adc_results_1_buf3[4] = {0, 0, 0, 0};
+uint16_t adc_results_2_buf3[4] = {0, 0, 0, 0};
+uint16_t adc_results_3_buf3[4] = {0, 0, 0, 0};
+uint16_t adc_results_4_buf3[4] = {0, 0, 0, 0};
 
 uint8_t volatile ground_id = 1;
 
 uint16_t sensor_treshholds[16] = {
+	750, 750, 750, 750,
+	750, 750, 750, 750,
+	750, 750, 750, 750,
+	750, 750, 750, 750};
+
+uint16_t sensor_release_treshholds[16] = {
 	750, 750, 750, 750,
 	750, 750, 750, 750,
 	750, 750, 750, 750,
@@ -104,21 +110,20 @@ uint16_t sensor_offsets[16] = {
 //		7,7,8,8,8,8,3,3,5,5
 // };
 
-//P1
+// P1
 
-
-//uint8_t key_map[9] = {
+// uint8_t key_map[9] = {
 //	KEY_Q, KEY_W, KEY_E,
 //	KEY_A, KEY_S, KEY_D,
 //	KEY_Z, KEY_X, KEY_C};
 //
-//uint8_t sensors_binding[40] = {
+// uint8_t sensors_binding[40] = {
 //	5,5, 7, 4, 8, 1, 2, 6, 0, 3,
 //	5,5, 7, 4, 8, 1, 2, 6, 0, 3,
 //	3,5, 7, 4, 8, 1, 2, 6, 0, 3,
 //	3,5, 7, 4, 8, 1, 2, 6, 0, 3};
 
-//P2
+// P2
 
 // Actually used are:
 // 1, 3, 5, 7
@@ -128,29 +133,25 @@ uint8_t key_map[9] = {
 	KEY_F, KEY_G, KEY_H,
 	KEY_V, KEY_B, KEY_N};
 
-
 uint8_t sensors_binding[16] = {
-	1,3, 5, 7,
-	1,3, 5, 7,
-	1,3, 5, 7,
-	1,3, 5, 7};
-
+	 3, 7, 5, 1,
+	 3, 7, 5, 1,
+	 3, 7, 5, 1,
+	 3, 7, 5, 1};
 
 uint16_t raw;
 char msg[10];
 char msg2[255];
 uint16_t s;
 char *token;
-uint16_t num1, num2,sensor_id;
+uint16_t num1, num2, sensor_id;
 
 uint8_t rx_buff[255];
 uint8_t volatile rx_buff_flag = 0;
 uint16_t volatile debug_var = 0;
 
 uint8_t key_states[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-
-
+uint8_t last_key_states[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static GPIO_InitTypeDef Output_1_in;
 static GPIO_InitTypeDef Output_1_out;
@@ -173,7 +174,13 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-		// CDC_Transmit(0, HAL_GetTick() , sizeof(uint32_t));
+	// CDC_Transmit(0, HAL_GetTick() , sizeof(uint32_t));
+//	char msg[32];
+//	uint32_t tick = HAL_GetTick();
+//	int len = sprintf(msg, "%lu\r\n", tick); // Use %lu for uint32_t
+//
+//	CDC_Transmit(0, (uint8_t *)msg, len);
+
 	//	ground_id=69;
 	//	debug_var++;
 	HAL_ADC_Stop_DMA(&hadc1);
@@ -230,19 +237,38 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 	}
 }
 
-uint16_t get_sensor_avg_1(uint8_t i){
-return (adc_results_1_buf2[i] + adc_results_1_buf1[i]+adc_results_1_buf3[i])/3;
-}
-uint16_t get_sensor_avg_2(uint8_t i){
-return (adc_results_2_buf2[i] + adc_results_2_buf1[i]+adc_results_2_buf3[i])/3;
-}
-uint16_t get_sensor_avg_3(uint8_t i){
-return (adc_results_3_buf2[i] + adc_results_3_buf1[i]+adc_results_3_buf3[i])/3;
-}
-uint16_t get_sensor_avg_4(uint8_t i){
-return (adc_results_4_buf2[i] + adc_results_4_buf1[i]+adc_results_4_buf3[i])/3;
+
+
+uint16_t get_sensor_avg(uint8_t group, uint8_t i)
+{
+	switch (group)
+	{
+	case 0:
+		return (adc_results_1_buf1[i] + adc_results_1_buf2[i] + adc_results_1_buf3[i]) / 3;
+	case 1:
+		return (adc_results_2_buf1[i] + adc_results_2_buf2[i] + adc_results_2_buf3[i]) / 3;
+	case 2:
+		return (adc_results_3_buf1[i] + adc_results_3_buf2[i] + adc_results_3_buf3[i]) / 3;
+	case 3:
+		return (adc_results_4_buf1[i] + adc_results_4_buf2[i] + adc_results_4_buf3[i]) / 3;
+	default:
+		return 0; 
+	}
 }
 
+uint16_t map_sensor_value(uint16_t offset, uint16_t avg)
+{
+	if (avg >= offset)
+	{
+		return 0;
+	}
+	else
+	{
+		uint16_t diff = offset - avg;
+		// Use uint32_t to prevent overflow in multiplication
+		return (uint16_t)(((uint32_t)diff * 1024) / offset);
+	}
+}
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -281,6 +307,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		for (int i = 0; i < 9; i++)
 		{
+			last_key_states[i] = key_states[i];
 			key_states[i] = 0;
 		}
 
@@ -288,35 +315,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		{
 			for (int j = 0; j < 4; ++j)
 			{
-				switch (j)
-				{
-				case 0:
-					if (sensor_treshholds[i + j * 4] < (((sensor_offsets[i + j * 4] * 1024) / get_sensor_avg_1(i)) - 1024))
+				uint16_t offset = sensor_offsets[i + j * 4];
+				uint16_t avg = get_sensor_avg(j, i);
+				uint16_t current_value = map_sensor_value(offset, avg);
+					if (sensor_treshholds[i + j * 4] < current_value)
 					{
 						key_states[sensors_binding[i + j * 4]] = 1;
 					}
-					break;
-				case 1:
-					if (sensor_treshholds[i + j * 4] < (((sensor_offsets[i + j * 4] * 1024) / get_sensor_avg_2(i)) - 1024))
-					{
-						key_states[sensors_binding[i + j * 4]] = 1;
-					}
-					break;
-				case 2:
-					if (sensor_treshholds[i + j * 4] < (((sensor_offsets[i + j * 4] * 1024) / get_sensor_avg_3(i)) - 1024))
-					{
-						key_states[sensors_binding[i + j * 4]] = 1;
-					}
-					break;
-				case 3:
-					if (sensor_treshholds[i + j * 4] < (((sensor_offsets[i + j * 4] * 1024) / get_sensor_avg_4(i)) - 1024))
-					{
-						key_states[sensors_binding[i + j * 4]] = 1;
-					}
-					break;
-				}
+				
 			}
 		}
+
 
 		//		for (int i = 0; i < 40; ++i)
 		//		{
@@ -415,7 +424,6 @@ int main(void)
 	MX_TIM2_Init();
 	/* USER CODE BEGIN 2 */
 
-
 	Output_1_in.Pin = Output_1_Pin;
 	Output_1_in.Mode = GPIO_MODE_INPUT;
 	Output_1_in.Pull = GPIO_NOPULL;
@@ -490,9 +498,9 @@ int main(void)
 	while (1)
 	{
 
-//		s = 0;
-//		s += sprintf(msg2 + s, " %d", rx_buff_flag);
-//		CDC_Transmit(0, (uint8_t *)msg2, s);
+		//		s = 0;
+		//		s += sprintf(msg2 + s, " %d", rx_buff_flag);
+		//		CDC_Transmit(0, (uint8_t *)msg2, s);
 
 		if (rx_buff_flag == 1)
 		{
@@ -501,30 +509,30 @@ int main(void)
 
 			switch (rx_buff[0])
 			{
-			case 'o':
-			case 'O':
-				for (int i = 0; i < 4; ++i)
-				{
-					for (int j = 0; j < 4; ++j)
-					{
-						switch (j)
-						{
-						case 0:
-							sensor_offsets[i + j * 4] = adc_results_1[i];
-							break;
-						case 1:
-							sensor_offsets[i + j * 4] = adc_results_2[i];
-							break;
-						case 2:
-							sensor_offsets[i + j * 4] = adc_results_3[i];
-							break;
-						case 3:
-							sensor_offsets[i + j * 4] = adc_results_4[i];
-							break;
-						}
-					}
-				}
-				break;
+			// case 'o':
+			// case 'O':
+			// 	for (int i = 0; i < 4; ++i)
+			// 	{
+			// 		for (int j = 0; j < 4; ++j)
+			// 		{
+			// 			switch (j)
+			// 			{
+			// 			case 0:
+			// 				sensor_offsets[i + j * 4] = adc_results_1[i];
+			// 				break;
+			// 			case 1:
+			// 				sensor_offsets[i + j * 4] = adc_results_2[i];
+			// 				break;
+			// 			case 2:
+			// 				sensor_offsets[i + j * 4] = adc_results_3[i];
+			// 				break;
+			// 			case 3:
+			// 				sensor_offsets[i + j * 4] = adc_results_4[i];
+			// 				break;
+			// 			}
+			// 		}
+			// 	}
+			// 	break;
 			case 'v':
 			case 'V':
 				s = 0;
@@ -534,21 +542,11 @@ int main(void)
 				{
 					for (int j = 0; j < 4; ++j)
 					{
-						switch (j)
-						{
-						case 0:
-							s += sprintf(msg2 + s, " %d", ((sensor_offsets[i + j * 4] * 1024) / get_sensor_avg_1(i)) - 1024);
-							break;
-						case 1:
-							s += sprintf(msg2 + s, " %d", ((sensor_offsets[i + j * 4] * 1024) / get_sensor_avg_2(i)) - 1024);
-							break;
-						case 2:
-							s += sprintf(msg2 + s, " %d", ((sensor_offsets[i + j * 4] * 1024) / get_sensor_avg_3(i)) - 1024);
-							break;
-						case 3:
-							s += sprintf(msg2 + s, " %d", ((sensor_offsets[i + j * 4] * 1024) / get_sensor_avg_4(i)) - 1024);
-							break;
-						}
+
+						uint16_t offset = sensor_offsets[i + j * 4];
+						uint16_t avg = get_sensor_avg(j, i);
+						s += sprintf(msg2 + s, " %d", map_sensor_value(offset, avg));
+
 					}
 				}
 
@@ -586,7 +584,7 @@ int main(void)
 					sensor_treshholds[sensor_id] = num2;
 					s = 0;
 					s = sprintf(msg2, "t");
-//					s += sprintf(msg2 + s, " %d", sensor_id);
+					//					s += sprintf(msg2 + s, " %d", sensor_id);
 
 					for (int i = 0; i < 4; ++i)
 					{
@@ -596,7 +594,6 @@ int main(void)
 						}
 					}
 					s += sprintf(msg2 + s, "\n");
-
 
 					if ((EE_WriteVariable(VirtAddVarTab[sensor_id], sensor_treshholds[sensor_id])) != HAL_OK)
 					{
@@ -611,8 +608,7 @@ int main(void)
 				break;
 			}
 		}
-//		HAL_Delay(1);
-
+		//		HAL_Delay(1);
 
 		/* USER CODE END WHILE */
 
