@@ -55,6 +55,7 @@
 
 /* USER CODE BEGIN PV */
 #define DEBUG_SENSORS 0
+#define RELEASE_DEBOUNCE_PERCENTAGE 96
 
 uint16_t VirtAddVarTab[NB_OF_VAR];
 uint16_t VarIndex, VarDataTmp = 0;
@@ -92,10 +93,10 @@ uint16_t sensor_treshholds[16] = {
 	750, 750, 750, 750};
 
 uint16_t sensor_release_treshholds[16] = {
-	750, 750, 750, 750,
-	750, 750, 750, 750,
-	750, 750, 750, 750,
-	750, 750, 750, 750};
+	250, 250, 250, 250,
+	250, 250, 250, 250,
+	250, 250, 250, 250,
+	250, 250, 250, 250};
 
 uint16_t sensor_offsets[16] = {
 	4000, 4000, 4000, 4000,
@@ -134,10 +135,10 @@ uint8_t key_map[9] = {
 	KEY_V, KEY_B, KEY_N};
 
 uint8_t sensors_binding[16] = {
-	 3, 7, 5, 1,
-	 3, 7, 5, 1,
-	 3, 7, 5, 1,
-	 3, 7, 5, 1};
+	3, 7, 5, 1,
+	3, 7, 5, 1,
+	3, 7, 5, 1,
+	3, 7, 5, 1};
 
 uint16_t raw;
 char msg[10];
@@ -175,11 +176,11 @@ void SystemClock_Config(void);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
 	// CDC_Transmit(0, HAL_GetTick() , sizeof(uint32_t));
-//	char msg[32];
-//	uint32_t tick = HAL_GetTick();
-//	int len = sprintf(msg, "%lu\r\n", tick); // Use %lu for uint32_t
-//
-//	CDC_Transmit(0, (uint8_t *)msg, len);
+	//	char msg[32];
+	//	uint32_t tick = HAL_GetTick();
+	//	int len = sprintf(msg, "%lu\r\n", tick); // Use %lu for uint32_t
+	//
+	//	CDC_Transmit(0, (uint8_t *)msg, len);
 
 	//	ground_id=69;
 	//	debug_var++;
@@ -237,8 +238,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 	}
 }
 
-
-
 uint16_t get_sensor_avg(uint8_t group, uint8_t i)
 {
 	switch (group)
@@ -252,7 +251,7 @@ uint16_t get_sensor_avg(uint8_t group, uint8_t i)
 	case 3:
 		return (adc_results_4_buf1[i] + adc_results_4_buf2[i] + adc_results_4_buf3[i]) / 3;
 	default:
-		return 0; 
+		return 0;
 	}
 }
 
@@ -318,14 +317,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 				uint16_t offset = sensor_offsets[i + j * 4];
 				uint16_t avg = get_sensor_avg(j, i);
 				uint16_t current_value = map_sensor_value(offset, avg);
-					if (sensor_treshholds[i + j * 4] < current_value)
-					{
-						key_states[sensors_binding[i + j * 4]] = 1;
-					}
-				
+				if (sensor_treshholds[i + j * 4] < current_value)
+				{
+					key_states[sensors_binding[i + j * 4]] = 1;
+				}
+				else if (last_key_states[sensors_binding[i + j * 4]] == 1 && sensor_release_treshholds[i + j * 4] < current_value)
+				{
+					key_states[sensors_binding[i + j * 4]] = 1;
+				}
 			}
 		}
-
 
 		//		for (int i = 0; i < 40; ++i)
 		//		{
@@ -490,6 +491,7 @@ int main(void)
 				Error_Handler();
 			}
 		}
+		sensor_release_treshholds[VarIndex] = (uint16_t)((uint32_t)sensor_treshholds[VarIndex] * RELEASE_DEBOUNCE_PERCENTAGE / 100);
 	}
 	/* USER CODE END 2 */
 
@@ -546,7 +548,6 @@ int main(void)
 						uint16_t offset = sensor_offsets[i + j * 4];
 						uint16_t avg = get_sensor_avg(j, i);
 						s += sprintf(msg2 + s, " %d", map_sensor_value(offset, avg));
-
 					}
 				}
 
@@ -582,6 +583,7 @@ int main(void)
 					//				sensor_treshholds[(num1*10)%40 + num1/4] = num2;
 					sensor_id = num1 % 4 * 4 + num1 / 4;
 					sensor_treshholds[sensor_id] = num2;
+					sensor_release_treshholds[VarIndex] = (uint16_t)((uint32_t)num2 * RELEASE_DEBOUNCE_PERCENTAGE / 100);
 					s = 0;
 					s = sprintf(msg2, "t");
 					//					s += sprintf(msg2 + s, " %d", sensor_id);
